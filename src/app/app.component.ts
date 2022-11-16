@@ -94,11 +94,6 @@ export class AppComponent implements OnInit {
       endDateFormated,
       this.pointJSON.features
     );
-
-    // console.log(startDate.getFullYear());
-    // console.log('initialDate', this.initialDate);
-    // console.log('startDateFormated', startDateFormated);
-    // console.log('endDateFormated', endDateFormated);
   }
 
   leafletMap() {

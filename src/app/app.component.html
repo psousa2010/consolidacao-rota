@@ -1,13 +1,59 @@
-<div class="map-container">
 
-  <div class="map-frame">
-    <div id="map"></div>
+<div fxLayout="column" fxLayoutAlign="space-around center">
+  <h3>Dados de posições disponíveis somente do dia 10/11/2022</h3>
+
+  <div class="data-hora" fxLayout="row" fxLayoutAlign="center center" fxLayoutGap="30">
+
+    <form [formGroup]="startDateTimeForm">
+
+      <div fxLayout="row" fxLayoutGap="30">
+        <div fxFlex="50" fxFill fxLayoutAlign="start center">
+          <mat-form-field>
+            <input placeholder="Data inicial" matInput [matDatepicker]="startDatePicker" formControlName="startDate">
+            <mat-datepicker-toggle matSuffix [for]="startDatePicker"></mat-datepicker-toggle>
+            <mat-datepicker touchUi #startDatePicker></mat-datepicker>
+          </mat-form-field>
+        </div>
+        <div fxFlex="50" fxFill fxLayoutAlign="start center">
+          <mat-form-field>
+            <mat-label>Hora</mat-label>
+            <input matInput type="time" placeholder="" formControlName="startTime" #StartTime />
+          </mat-form-field>
+        </div>
+      </div>
+
+    </form>
+    <form [formGroup]="endDateTimeForm">
+
+      <div fxLayout="row" fxLayoutGap="30">
+        <div fxFlex="50" fxFill fxLayoutAlign="start center">
+          <mat-form-field>
+            <input placeholder="Data final" matInput [matDatepicker]="endDatePicker" formControlName="endDate">
+            <mat-datepicker-toggle matSuffix [for]="endDatePicker"></mat-datepicker-toggle>
+            <mat-datepicker #endDatePicker></mat-datepicker>
+          </mat-form-field>
+        </div>
+        <div fxFlex="50" fxFill fxLayoutAlign="start center">
+          <mat-form-field>
+            <mat-label>Hora</mat-label>
+            <input matInput type="time" placeholder="" formControlName="endTime" #endTime />
+          </mat-form-field>
+        </div>
+      </div>
+
+    </form>
+    <div fxLayout="row" fxLayoutGap="30">
+      <button mat-raised-button color="primary" (click)="consultar()">Consultar</button>
+      <button mat-raised-button color="primary" (click)="rotaInteira()">Rota inteira</button>
+      <mat-slide-toggle (change)="todosPontos($event)">Mostrar todos os pontos</mat-slide-toggle>
+    </div>
+
   </div>
 
-  <!-- <div class="input-datas">
-    <div class="input-frame">
-
+  <!-- map -->
+  <div class="map-container">
+    <div class="map-frame">
+      <div id="map"></div>
     </div>
-  </div> -->
-
+  </div>
 </div>

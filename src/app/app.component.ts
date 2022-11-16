@@ -1,5 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import { geoJson, Map, tileLayer } from 'leaflet';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { MatSlideToggleChange } from '@angular/material/slide-toggle';
+import { geoJson, Layer, Map, tileLayer } from 'leaflet';
+import { TimerHandle } from 'rxjs/internal/scheduler/timerHandle';
 
 import * as geoJsonPoints from '../app/mock/geojson.json';
 import { Feature } from './feature.model';
@@ -10,8 +13,16 @@ import { Feature } from './feature.model';
   styleUrls: ['./app.component.scss'],
 })
 export class AppComponent implements OnInit {
+  constructor(private fb: FormBuilder) {}
+
   map!: Map;
   trimble = { lat: -23.3168889, long: -51.1492404 };
+  tile = tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    minZoom: 14,
+    maxZoom: 19,
+    attribution:
+      '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  });
 
   geoJsonStringifyed = JSON.stringify(geoJsonPoints);
   pointJSON = JSON.parse(this.geoJsonStringifyed);
@@ -45,66 +56,109 @@ export class AppComponent implements OnInit {
   initialDate = new Date('2022-11-10T13:33:00Z');
   finalDate = new Date('2022-11-10T13:39:59Z');
 
+  startDateTimeForm!: FormGroup;
+  endDateTimeForm!: FormGroup;
+
   ngOnInit(): void {
     this.leafletMap();
+    this.startDateTimeForm = this.fb.group({
+      startDate: ['2022-11-10T13:30:00Z', [Validators.required]],
+      startTime: ['13:30:01', [Validators.required]],
+    });
+    this.endDateTimeForm = this.fb.group({
+      endDate: ['2022-11-10T13:31:59Z', [Validators.required]],
+      endTime: ['13:31:59', [Validators.required]],
+    });
+  }
 
-    // this.dateTimeFilter(
-    //   this.initialDate,
-    //   this.finalDate,
-    //   this.pointJSON.features
-    // );
+  consultar() {
+    let startDate = new Date(this.startDateTimeForm.value.startDate);
+    let startTime = this.startDateTimeForm.value.startTime;
 
-    // console.log(this.datetimeList);
-    // console.log(this.mainRouteLine);
-    // console.log(geoJsonPoints.type);
-    // console.log(this.geoJsonStringifyed);
-    // console.log('pointJSON', this.pointJSON);
-    // console.log('this.pointJSON.features', this.pointJSON.features);
-    // console.log('featuresCollection', this.featuresCollection);
-    // console.log('Rota ', this.rota);
+    let endDate = new Date(this.endDateTimeForm.value.endDate);
+    let endTime = this.endDateTimeForm.value.endTime;
+
+    let startDateFormated = new Date(
+      `${startDate.getFullYear()}-${
+        startDate.getMonth() + 1
+      }-${startDate.getDate()}T${startTime}Z`
+    );
+    let endDateFormated = new Date(
+      `${endDate.getFullYear()}-${
+        endDate.getMonth() + 1
+      }-${endDate.getDate()}T${endTime}Z`
+    );
+
+    this.dateTimeFilter(
+      startDateFormated,
+      endDateFormated,
+      this.pointJSON.features
+    );
+
+    // console.log(startDate.getFullYear());
+    // console.log('initialDate', this.initialDate);
+    // console.log('startDateFormated', startDateFormated);
+    // console.log('endDateFormated', endDateFormated);
   }
 
   leafletMap() {
     this.map = new Map('map').setView(
       [this.trimble.lat, this.trimble.long],
-      18
+      16
     );
-    {
-      tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        minZoom: 14,
-        maxZoom: 19,
-        attribution:
-          '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      }).addTo(this.map);
-
-      geoJson(this.pointJSON).addTo(this.map);
-
-      geoJson(this.myLineJSON, {
-        style: this.myStyleMainRoute,
-      }).addTo(this.map);
-
-      this.dateTimeFilter(
-        this.initialDate,
-        this.finalDate,
-        this.pointJSON.features
-      );
-    }
+    tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      minZoom: 14,
+      maxZoom: 19,
+      attribution:
+        '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(this.map);
   }
 
-  dateTimeFilter(initial: Date, final: Date, collection: Feature[]): void {
+  rotaInteira() {
+    geoJson(this.myLineJSON, {
+      style: this.myStyleMainRoute,
+    }).addTo(this.map);
+  }
+
+  dateTimeFilter(start: Date, end: Date, collection: Feature[]): void {
     let featuresFiltradas = collection.filter(
       (feature) =>
-        new Date(feature.properties.datetime).getTime() >= initial.getTime() &&
-        new Date(feature.properties.datetime).getTime() <= final.getTime()
+        new Date(feature.properties.datetime).getTime() >= start.getTime() &&
+        new Date(feature.properties.datetime).getTime() <= end.getTime()
     );
+    let featuresFiltradasString = JSON.stringify(featuresFiltradas);
     let filteredCoordenates = featuresFiltradas.map(
       (feature) => `[${feature.geometry.coordinates}]`
     );
     let filteredRoute =
       '[{"type": "LineString", "coordinates": [' + filteredCoordenates + ']}]';
     let filteredLineJson = JSON.parse(filteredRoute);
-    geoJson(filteredLineJson, {
+    let filteredPointJson = JSON.parse(featuresFiltradasString);
+
+    let lineFiltered = geoJson(filteredLineJson, {
       style: this.myStyleFilteredRoute,
-    }).addTo(this.map);
+    }).addData(filteredPointJson);
+
+    this.atualizaLayer(lineFiltered);
+  }
+
+  atualizaLayer(layer: Layer) {
+    this.map.eachLayer((layerMap) => {
+      this.map.removeLayer(layerMap);
+    });
+    this.map.addLayer(this.tile);
+    this.map.addLayer(layer);
+  }
+
+  removePontos(layer: Layer) {
+    this.map.eachLayer((layerMap) => {
+      this.map.removeLayer(layerMap);
+    });
+    this.map.addLayer(this.tile);
+  }
+
+  todosPontos(event: MatSlideToggleChange) {
+    let pontos = geoJson(this.pointJSON);
+    event.checked ? this.map.addLayer(pontos) : this.removePontos(pontos);
   }
 }
